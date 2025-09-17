@@ -286,7 +286,7 @@ def process_mtg_data(lookback_days=182, fmt='Modern'):
     with open(f'processed_data/card_data.json', 'w') as f:
         json.dump(oracleid_lookup, f)
 
-    with open(f'processed_data/AtomicCards.json') as f:
+    with open(f'processed_data/AtomicCards.json', 'w') as f:
         json.dump(card_info, f)
     
     # Save matrices
