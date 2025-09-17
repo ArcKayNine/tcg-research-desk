@@ -1,6 +1,6 @@
 [project]
 name = "tcg-research-desk"
-version = "0.1.4"
+version = "0.1.5"
 description = "Tools to analyze and build dashboards for trading card game tournaments"
 authors = [
     {name = "ArcKayNine"}
@@ -13,7 +13,7 @@ dependencies = [
     "holoviews>=1.21.0",
     "panel>=1.8.0",
     "param>=2.2.1",
-    "scipy>=1.15.1",
+    "scipy>=1.14.1",
     "scikit-learn>=1.5.1",
 ]
 
