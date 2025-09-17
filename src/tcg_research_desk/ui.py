@@ -181,7 +181,7 @@ class MTGAnalyzer(param.Parameterized):
         Find row indices where specified logical combinations of cards are present.
         """
 
-        print(f'{self.date_range=}, {self.selected_cards=}, {self.excluded_cards=}, {self.selected_archetype=}')
+        # print(f'{self.date_range=}, {self.selected_cards=}, {self.excluded_cards=}, {self.selected_archetype=}')
         row_mask = self.date_filter & self.contents_filter & self.archetype_filter
         
         # Return row indices that satisfy all conditions
