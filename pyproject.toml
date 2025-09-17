@@ -6,7 +6,7 @@ authors = [
     {name = "ArcKayNine"}
 ]
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.9"
 dependencies = [
     "pandas>=2.3.1",
     "numpy>=1.26.4",
