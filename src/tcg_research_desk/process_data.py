@@ -275,7 +275,7 @@ def process_mtg_data(lookback_days=182, fmt='Modern'):
     # Save processed data
     output_data = {
         'decks': df[['Player', 'Wins', 'Losses', 'Date', 'Tournament', 'Invalid_WR']].to_dict('records'),
-        'results': res_df.to_dict('records'),
+        # 'results': ,
         'cluster_info': [],
         'feature_names': vectorizer.get_feature_names_out().tolist()
     }
@@ -283,6 +283,9 @@ def process_mtg_data(lookback_days=182, fmt='Modern'):
     with open(f'processed_data/deck_data.json', 'w') as f:
         json.dump(output_data, f)
 
+    with open(f'processed_data/results_data.json', 'w') as f:
+        json.dump(res_df.to_dict('records'), f)
+        
     with open(f'processed_data/card_data.json', 'w') as f:
         json.dump(oracleid_lookup, f)
 
@@ -331,7 +334,8 @@ def load_data(data_path='processed_data', lookback_days=365):
     df = pd.DataFrame(data['decks'])
     df['Date'] = pd.to_datetime(df['Date']).dt.date
     
-    res_df = pd.DataFrame(data['results'])
+    with open(Path(data_path) / 'results_data.json', 'r') as f:
+        res_df = pd.DataFrame(json.load(f))
 
     # Filter to recent data
     cutoff_date = (pd.to_datetime('today') - pd.Timedelta(days=lookback_days)).date()
