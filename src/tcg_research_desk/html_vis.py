@@ -295,7 +295,7 @@ def make_combined_matchup_html(
             f"display:flex; align-items:center;'>"
             # IMPORTANT: ensure your card element does NOT have min-width; use width:100% in its style
             f"{make_card_stack(a.split('\n'), cards_data)}"
-            f"</div>"
+            "</div>"
         )
     labels_col_html = f"<div style='margin-top:{top_margin}px; position:relative;'>" + "".join(left_rows) + "</div>"
 
@@ -379,7 +379,7 @@ def make_combined_matchup_html(
         f'{scatter_col_html}'
         f'{labels_col_html}'
         f'{matrix_html}'
-        f'</div>'
+        '</div>'
         f'{x_axis_html}'
     )
     return combined
