@@ -289,12 +289,13 @@ def make_combined_matchup_html(
     # LEFT COLUMN: fixed width; each row forces its content to width:100%
     left_rows = []
     for a in sorted_archetypes:
+        stack = make_card_stack(a.split('\n'), cards_data)
         left_rows.append(
             # Row container (fixed height/width)
             f"<div style='height:{row_height}px; width:{labels_width}px; "
             f"display:flex; align-items:center;'>"
             # IMPORTANT: ensure your card element does NOT have min-width; use width:100% in its style
-            f"{make_card_stack(a.split('\n'), cards_data)}"
+            f"{stack}"
             "</div>"
         )
     labels_col_html = f"<div style='margin-top:{top_margin}px; position:relative;'>" + "".join(left_rows) + "</div>"
