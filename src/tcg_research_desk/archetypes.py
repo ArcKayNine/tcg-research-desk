@@ -4,6 +4,81 @@ import pandas as pd
 from scipy.stats import binomtest
 
 from sklearn.cluster import AgglomerativeClustering
+from tqdm import tqdm
+
+def simple_threshold_clustering(X, distance_threshold, metric='manhattan'):
+    """
+    Simple single-pass clustering based on distance threshold.
+    
+    For each point, we check if it's within the threshold distance of any
+    existing cluster. If so, we add it to that cluster. If not, we create
+    a new cluster.
+    
+    This is effectively single-linkage clustering with a distance threshold,
+    but implemented as a greedy single-pass algorithm.
+    
+    Time complexity: O(n * k) where k is the number of clusters (often << n)
+    Space complexity: O(n + k)
+    
+    Parameters:
+    -----------
+    X : sparse matrix or dense array, shape (n_samples, n_features)
+        The input data
+    distance_threshold : float
+        Maximum distance for points to be in the same cluster
+    metric : str, default='manhattan'
+        Distance metric to use
+        
+    Returns:
+    --------
+    labels : array, shape (n_samples,)
+        Cluster labels for each point
+    """
+    n_samples = X.shape[0]
+
+    print('starting greedy clustering')
+    
+    # # Convert to dense if sparse for easier indexing
+    # # For very large sparse matrices, you might want to keep sparse
+    # # and use sparse-aware distance computation
+    # if hasattr(X, 'toarray'):
+    #     X_dense = X.toarray()
+    # else:
+    #     X_dense = X
+    
+    def manhattan_distance(i, j):
+        """Compute Manhattan distance between two points"""
+        return np.sum(np.abs(i - j))
+    
+    # Initialize clusters
+    labels = np.full(n_samples, -1)  # -1 means unassigned
+    cluster_representatives = []  # Store one representative point per cluster
+    cluster_sizes = []
+    next_cluster_id = 0
+    
+    # Process each point
+    for i in tqdm(range(n_samples)):
+        assigned = False
+        
+        # Check distance to each existing cluster (via its representative)
+        for cluster_id in range(next_cluster_id):
+            rep_point = cluster_representatives[cluster_id] / cluster_sizes[cluster_id]
+            if manhattan_distance(X[i], rep_point) <= distance_threshold:
+                # Assign to this cluster
+                labels[i] = cluster_id
+                cluster_sizes[cluster_id] += 1
+                cluster_representatives[cluster_id] += X[i]
+                assigned = True
+                break  # Take first cluster that's close enough
+        
+        # If not assigned to any existing cluster, create a new one
+        if not assigned:
+            labels[i] = next_cluster_id
+            cluster_representatives.append(X[i])  # Use this point as representative
+            cluster_sizes.append(1)
+            next_cluster_id += 1
+    
+    return labels
 
 
 def generate_archetypes(X, cards_data, vocabulary, n_cards=4, remove_pct=1):
@@ -19,9 +94,15 @@ def generate_archetypes(X, cards_data, vocabulary, n_cards=4, remove_pct=1):
         metric='manhattan',
         linkage='single'
     )
+
+    print('clustering...')
+    print(f'{X.shape=}, {len(vocabulary)}')
     cluster_labels_raw = agg_clustering.fit_predict(X.toarray()).astype(str)
     del agg_clustering
 
+    # cluster_labels_raw = simple_threshold_clustering(X, 60)
+
+    print('done')
 
     unique_values, counts = np.unique(cluster_labels_raw, return_counts=True)
     to_remove = unique_values[counts<X.shape[0]*remove_pct/100] # Remove decks with <remove_pct%
