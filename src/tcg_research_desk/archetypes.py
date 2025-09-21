@@ -87,20 +87,23 @@ def generate_archetypes(X, cards_data, vocabulary, n_cards=4, remove_pct=1):
     #
     vocabulary_inv = {v:k for k, v in vocabulary.items() if k is not None}
 
-    # Control granularity with distance_threshold or n_clusters
-    agg_clustering = AgglomerativeClustering(
-        n_clusters=None, 
-        distance_threshold=60,  # Adjust this for granularity
-        metric='manhattan',
-        linkage='single'
-    )
+    if X.shape[0] >= 5000:
+        cluster_labels_raw = simple_threshold_clustering(X, 60)
 
-    print('clustering...')
-    print(f'{X.shape=}, {len(vocabulary)}')
-    cluster_labels_raw = agg_clustering.fit_predict(X.toarray()).astype(str)
-    del agg_clustering
+    else:
 
-    # cluster_labels_raw = simple_threshold_clustering(X, 60)
+        # Control granularity with distance_threshold or n_clusters
+        agg_clustering = AgglomerativeClustering(
+            n_clusters=None, 
+            distance_threshold=60,  # Adjust this for granularity
+            metric='manhattan',
+            linkage='single'
+        )
+
+        print('clustering...')
+        print(f'{X.shape=}, {len(vocabulary)}')
+        cluster_labels_raw = agg_clustering.fit_predict(X.toarray()).astype(str)
+        del agg_clustering
 
     print('done')
 

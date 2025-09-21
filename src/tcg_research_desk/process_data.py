@@ -374,4 +374,6 @@ if __name__ == '__main__':
     else:
         lookback_days = 182
 
+    print(f'Processing {args.format}')
+
     process_mtg_data(fmt=args.format, lookback_days=lookback_days)
