@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from scipy.stats import binomtest
+# from scipy import sparse
 
 from sklearn.cluster import AgglomerativeClustering
 from tqdm import tqdm
@@ -87,21 +88,51 @@ def generate_archetypes(X, cards_data, vocabulary, n_cards=4, remove_pct=1):
     #
     vocabulary_inv = {v:k for k, v in vocabulary.items() if k is not None}
 
-    if X.shape[0] >= 5000:
-        cluster_labels_raw = simple_threshold_clustering(X, 60)
+    # if X.shape[0] >= 5000:
+    #     cluster_labels_raw = simple_threshold_clustering(X, 60)
 
-    else:
+    # else:
 
-        # Control granularity with distance_threshold or n_clusters
-        agg_clustering = AgglomerativeClustering(
-            n_clusters=None, 
-            distance_threshold=60,  # Adjust this for granularity
-            metric='manhattan',
-            linkage='single'
+    # Control granularity with distance_threshold or n_clusters
+    agg_clustering = AgglomerativeClustering(
+        n_clusters=None, 
+        distance_threshold=40,  # Adjust this for granularity
+        metric='manhattan',
+        linkage='single'
+    )
+
+    print('clustering...')
+    print(f'{X.shape=}, {len(vocabulary)}')
+    if X.shape[0] > 2000:
+        cluster_labels_raw = agg_clustering.fit_predict(X[-2000:].toarray()).astype(str)
+        del agg_clustering
+
+        unique_values, _ = np.unique(cluster_labels_raw, return_counts=True)
+
+        cluster_centers = np.array([
+            np.mean(X[-2000:][cluster_labels_raw == c], axis=0) for c in unique_values
+        ]).reshape(
+            (len(unique_values), len(vocabulary))
         )
 
-        print('clustering...')
-        print(f'{X.shape=}, {len(vocabulary)}')
+        other_labels = list()
+        # print(unique_values)
+
+        next_label = len(unique_values) + 1
+
+        print(cluster_centers.shape)
+
+        for i in range(X.shape[0]-2000):
+            dists = np.sum(np.abs(cluster_centers - X[i].toarray()), axis=1)
+            if any(dists<=40):
+                other_labels.append(unique_values[np.argmax(dists<=40)])
+            else:
+                other_labels.append(str(next_label))
+                next_label += 1
+
+        cluster_labels_raw = np.concat([np.array(other_labels), cluster_labels_raw], axis=None)
+
+    else:
         cluster_labels_raw = agg_clustering.fit_predict(X.toarray()).astype(str)
         del agg_clustering
 
