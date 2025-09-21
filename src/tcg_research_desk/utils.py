@@ -5,6 +5,10 @@ from scipy import sparse
 
 from collections import Counter
 
+import requests
+import re
+from datetime import datetime, timezone
+
 def fuzzy_join(df1, df2):
     """
     Join two dataframes on 'Player' column, handling duplicate names by matching based on closest rank.
@@ -148,3 +152,37 @@ def vertical_bar_html(value):
             <div style="position: absolute; width: 100%; text-align: center; top: 50%; transform: translateY(-50%); font-size: 10px;">{percent:.0f}%</div>
         </div>
     """
+
+def get_last_standard_change():
+    """Returns tuple of (date_string, days_ago) for the most recent Standard change."""
+    response = requests.get('https://whatsinstandard.com/api/v6/standard.json')
+    data = response.json()
+    now = datetime.now()
+    most_recent = None
+    
+    # Check rotations
+    for set_info in data.get('sets', []):
+        exit_date_str = set_info.get('exitDate').get('exact')
+        if exit_date_str:
+            exit_date = datetime.fromisoformat(exit_date_str.replace('Z', '+00:00'))
+            if exit_date <= now and (not most_recent or exit_date > most_recent):
+                most_recent = exit_date
+    
+    # Check bans
+    for ban in data.get('bans', []):
+        if ban.get('announcementUrl'):
+            match = re.search(r'(\w+)-(\d{1,2})-(\d{4})', ban['announcementUrl'])
+            if match:
+                month_name, day, year = match.groups()
+                try:
+                    month_num = datetime.strptime(month_name.lower(), '%B').month
+                except ValueError:
+                    month_num = datetime.strptime(month_name.lower(), '%b').month
+                ban_date = datetime(int(year), month_num, int(day))
+                if ban_date <= now and (not most_recent or ban_date > most_recent):
+                    most_recent = ban_date
+    
+    if most_recent:
+        days_ago = (now - most_recent).days
+        return (most_recent, days_ago)
+    return (None, None)
