@@ -705,6 +705,6 @@ To filter down the decks you're looking at, you can do any of the following:
 
 
 if __name__ == '__main__':
-    df, X, res_df, vocabulary, oracleid_lookup = load_data()
-    dashboard = create_dashboard(df, X, res_df, vocabulary, oracleid_lookup)
+    df, X, res_df, vocabulary, oracleid_lookup, cards_data = load_data()
+    dashboard = create_dashboard(df, res_df, X, vocabulary, oracleid_lookup, cards_data)
     dashboard.servable()
