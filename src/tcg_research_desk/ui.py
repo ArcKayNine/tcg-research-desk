@@ -680,7 +680,8 @@ To filter down the decks you're looking at, you can do any of the following:
             aggregate_view,
             analysis_view,
         ),
-        name="Archetype Investigation"
+        name="Archetype Investigation",
+        sizing_mode="stretch_both",
     )
     
     # Create template
