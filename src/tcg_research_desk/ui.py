@@ -566,7 +566,7 @@ def create_dashboard(df, res_df, X, vocabulary, oracleid_lookup, cards_data):
         html_options=[make_card_stack(
             a.split('\n'), 
             analyzer.cards_data, 
-            # fix_width=120, 
+            fix_width=140, 
             show_mana=False,
             font_size='9px',
         ) for a in analyzer.archetype_list],
