@@ -81,7 +81,6 @@ def simple_threshold_clustering(X, distance_threshold, metric='manhattan'):
     
     return labels
 
-
 def generate_archetypes(X, cards_data, vocabulary, n_cards=4, remove_pct=1):
 
     # Most other uses need the vocabulary, we need the inverse here though.

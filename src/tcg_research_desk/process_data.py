@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from scipy import sparse
 
 from .utils import fuzzy_join, get_last_standard_change
+from .archetypes import generate_archetypes
 
 
 def get_tournament_files(base_path='../MTG_decklistcache/Tournaments', lookback_days=365, fmt='modern'):
@@ -69,8 +70,15 @@ def process_mtg_data(lookback_days=182, fmt='Modern'):
     
     # Process tournament files
     tournament_path = Path('../MTG_decklistcache/Tournaments/')
+    tournament_files = get_tournament_files(tournament_path, lookback_days, fmt.lower())
+
+    if len(tournament_files) < 10:
+        # We don't have enough data, go back ~a month.
+        lookback_days += 30
+        tournament_files = get_tournament_files(tournament_path, lookback_days, fmt.lower())
+
     # Add tqdm back here if needed.
-    for path in get_tournament_files(tournament_path, lookback_days, fmt.lower()):
+    for path in tournament_files:
         try:
             with open(path) as f:
                 data = json.load(f)
@@ -251,6 +259,11 @@ def process_mtg_data(lookback_days=182, fmt='Modern'):
 
     vectorizer = CountVectorizer(analyzer=merge_analyzer)
     X = vectorizer.fit_transform(df['Deck'])
+
+    cluster_map, clusters_id, archetype_list, deck_archetypes = generate_archetypes(
+        X, card_info, vectorizer.vocabulary_, n_cards=4
+    )
+    df['Archetype'] = deck_archetypes
     
     # Apply Information Weight Transform
     # iwt = InformationWeightTransformer()
@@ -274,10 +287,13 @@ def process_mtg_data(lookback_days=182, fmt='Modern'):
     df['Date'] = df['Date'].astype(str)
     # Save processed data
     output_data = {
-        'decks': df[['Player', 'Wins', 'Losses', 'Date', 'Tournament', 'Invalid_WR']].to_dict('records'),
+        'decks': df[['Player', 'Wins', 'Losses', 'Date', 'Tournament', 'Invalid_WR', 'Archetype']].to_dict('records'),
         # 'results': ,
-        'cluster_info': [],
-        'feature_names': vectorizer.get_feature_names_out().tolist()
+        # 'cluster_info': [],
+        # 'feature_names': vectorizer.get_feature_names_out().tolist(),
+        'cluster_map': cluster_map,
+        'clusters_id': clusters_id,
+        'archetype_list': archetype_list,
     }
     
     with open(f'processed_data/deck_data.json', 'w') as f:
@@ -333,6 +349,10 @@ def load_data(data_path='processed_data', lookback_days=365):
     # Convert to DataFrame
     df = pd.DataFrame(data['decks'])
     df['Date'] = pd.to_datetime(df['Date']).dt.date
+
+    cluster_map = data['cluster_map']
+    clusters_id = data['clusters_id']
+    archetype_list = data['archetype_list']
     
     with open(Path(data_path) / 'results_data.json', 'r') as f:
         res_df = pd.DataFrame(json.load(f))
@@ -360,8 +380,10 @@ def load_data(data_path='processed_data', lookback_days=365):
     # vectorizer = CountVectorizer()
     # vectorizer.vocabulary_ = vectorizer_data['vocabulary']
     # vectorizer.fixed_vocabulary_ = True
+
+    print(f'{len(cards_data)=}')
     
-    return df, X, res_df, vectorizer_data['vocabulary'], oracleid_lookup, cards_data
+    return df, X, res_df, vectorizer_data['vocabulary'], oracleid_lookup, cards_data, cluster_map, clusters_id, archetype_list
 
 if __name__ == '__main__':
     import argparse

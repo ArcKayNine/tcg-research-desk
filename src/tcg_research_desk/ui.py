@@ -10,7 +10,7 @@ import param
 from .utils import sparse_column_value_counts, vertical_bar_html
 from .process_data import load_data
 from .ui_helpers import HTMLRadioIconGroup
-from .archetypes import generate_archetypes, make_matchup_matrix
+from .archetypes import make_matchup_matrix
 from .html_vis import make_combined_matchup_html, make_card_stack
 
 pn.extension(
@@ -45,7 +45,7 @@ class MTGAnalyzer(param.Parameterized):
 
     df_winrates = param.DataFrame(doc="Matchup matrix win rates")
     
-    def __init__(self, df, res_df, card_vectors, vocabulary, oracleid_lookup, cards_data, **params):
+    def __init__(self, df, res_df, card_vectors, vocabulary, oracleid_lookup, cards_data, cluster_map, clusters_id, archetype_list, **params):
         super().__init__(**params)
         self.df = df
         self.res_df = res_df
@@ -53,6 +53,9 @@ class MTGAnalyzer(param.Parameterized):
         self.feature_names = vocabulary
         self.oracleid_lookup = oracleid_lookup
         self.cards_data = cards_data
+        self.cluster_map = cluster_map
+        self.clusters_id = clusters_id
+        self.archetype_list = archetype_list
         
         self._initialize_card_list()
         self.find_valid_rows()
@@ -65,10 +68,10 @@ class MTGAnalyzer(param.Parameterized):
         )))
         
     def set_archetypes(self):
-        self.cluster_map, self.clusters_id, self.archetype_list, deck_archetypes = generate_archetypes(
-            self.X, self.cards_data, self.feature_names, n_cards=4
-        )
-        self.df['Archetype'] = deck_archetypes
+    #     self.cluster_map, self.clusters_id, self.archetype_list, deck_archetypes = generate_archetypes(
+    #         self.X, self.cards_data, self.feature_names, n_cards=4
+    #     )
+    #     self.df['Archetype'] = deck_archetypes
         self.ci_data, self.df_winrates = make_matchup_matrix(
             self.df, self.res_df, self.cluster_map, self.clusters_id, self.archetype_list
         )
@@ -525,8 +528,8 @@ class MTGAnalyzer(param.Parameterized):
 
 # Create the dashboard
 #
-def create_dashboard(df, res_df, X, vocabulary, oracleid_lookup, cards_data):
-    analyzer = MTGAnalyzer(df, res_df, X, vocabulary, oracleid_lookup, cards_data)
+def create_dashboard(df, res_df, X, vocabulary, oracleid_lookup, cards_data, cluster_map, clusters_id, archetype_list):
+    analyzer = MTGAnalyzer(df, res_df, X, vocabulary, oracleid_lookup, cards_data, cluster_map, clusters_id, archetype_list)
     
     # Create card selection widget
     #
@@ -706,6 +709,6 @@ To filter down the decks you're looking at, you can do any of the following:
 
 
 if __name__ == '__main__':
-    df, X, res_df, vocabulary, oracleid_lookup, cards_data = load_data()
-    dashboard = create_dashboard(df, res_df, X, vocabulary, oracleid_lookup, cards_data)
+    df, X, res_df, vocabulary, oracleid_lookup, cards_data, cluster_map, clusters_id, archetype_list = load_data()
+    dashboard = create_dashboard(df, res_df, X, vocabulary, oracleid_lookup, cards_data, cluster_map, clusters_id, archetype_list)
     dashboard.servable()
