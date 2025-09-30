@@ -276,17 +276,20 @@ def make_combined_matchup_html(
     ci_data,                 # list of (win_rate, archetype, err_low, err_high)
     sorted_archetypes,       # list of archetype names (top -> bottom)
     matchups,                # dataframe with matchups 
-    cards_data,              # whatever your make_card_stack needs
+    meta_share,              # dict with meta share
+    cards_data,              # data for html card stacks
     plot_width=600,          # px
     labels_width=280,        # px: fixed width for the left column
     row_height=40,           # px per row
     xticks=(0.0, 0.25, 0.5, 0.75, 1.0),
     top_margin=0,
 ):
+    #############################################
     # Make the matrix first to get header height.
     matrix_html, top_margin = make_matchup_matrix(sorted_archetypes, matchups, cards_data, levels=4)
 
-    # LEFT COLUMN: fixed width; each row forces its content to width:100%
+    #######################################################################
+    # LABELS COLUMN: fixed width; each row forces its content to width:100%
     left_rows = []
     for a in sorted_archetypes:
         stack = make_card_stack(a.split('\n'), cards_data)
@@ -300,7 +303,8 @@ def make_combined_matchup_html(
         )
     labels_col_html = f"<div style='margin-top:{top_margin}px; position:relative;'>" + "".join(left_rows) + "</div>"
 
-    # RIGHT COLUMN: scatter + error bars (absolute positioning)
+    #############################################################
+    # SCATTER COLUMN: scatter + error bars (absolute positioning)
     plot_height = len(sorted_archetypes) * row_height
     arch_to_row = {a: i for i, a in enumerate(sorted_archetypes)}
 
@@ -363,11 +367,41 @@ def make_combined_matchup_html(
         )
     x_axis_html = (
         f'<div style="position:relative; width:{plot_width}px; height:18px; '
-        # f'margin-left:{labels_width}px;'
+        f'margin-left:{plot_width}px;'
         'margin-top:4px;">'
         + "".join(tick_labels) +
         '</div>'
     )
+
+    ##############################
+    # META SHARE: horizontal bars.
+    bars = []
+
+    max_playrate = max(meta_share.values())
+    for archetype in sorted_archetypes:
+        row_idx = arch_to_row[archetype]
+        top = (row_idx) * row_height
+        pr = meta_share.get(archetype, 0.0)
+        bar_len = min(pr / max_playrate, 1.0) * plot_width
+        pr_text = f"{pr:.1f}%"
+
+        # Background track
+        bars.append(
+            f'<div style="position:absolute; top:{top}px; left:0; height:{row_height}px; width:{plot_width}px; '
+            f'box-sizing:border-box; border-bottom:1px solid #eee;">'
+            f'<div style="height:100%; width:{bar_len}px; background:#4a90e2; '
+            f'border-radius:3px; display:flex; align-items:center; justify-content:flex-start; padding-right:2px; '
+            f'"><span style="font-size:{row_height*0.5}px; color:#333; padding-left:5px; ">{pr_text}</span></div>'
+            f'</div>'
+        )
+
+    meta_share_html = (
+        f'<div style="position:relative; width:{plot_width}px; height:{plot_height}px; '
+        f'border-left:1px solid #ccc; box-sizing:border-box; margin-top:{top_margin}px;">'
+        + "".join(bars) +
+        '</div>'
+    )
+
 
     # Combined grid: fixed left column + fixed right plot
     # Mana symbols from:
@@ -375,8 +409,9 @@ def make_combined_matchup_html(
     #
     combined = (
         '<link href="//cdn.jsdelivr.net/npm/mana-font@latest/css/mana.css" rel="stylesheet" type="text/css" />'
-        f'<div style="display:grid; grid-template-columns: {plot_width}px {labels_width}px 1fr; '
+        f'<div style="display:grid; grid-template-columns: {plot_width}px {plot_width}px {labels_width}px 1fr; '
         f'column-gap:10px; align-items:start;">'
+        f'{meta_share_html}'
         f'{scatter_col_html}'
         f'{labels_col_html}'
         f'{matrix_html}'

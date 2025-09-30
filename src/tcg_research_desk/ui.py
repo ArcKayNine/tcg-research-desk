@@ -38,6 +38,7 @@ class MTGAnalyzer(param.Parameterized):
 
     valid_rows = param.Array(default=np.array([]), doc="Selected indices")
     valid_wr_rows = param.Array(default=np.array([]), doc="Selected indices with valid wr")
+    valid_match_rows = param.Array(default=np.array([]), doc="Selected match indices")
 
     selected_archetype = param.String(default=None, allow_None=True, doc="Selected archetype")
 
@@ -66,22 +67,24 @@ class MTGAnalyzer(param.Parameterized):
         self.card_options = sorted(list(set(
             [name.replace('_SB', '') for name in self.feature_names.keys()]
         )))
-        
-    def set_archetypes(self):
-    #     self.cluster_map, self.clusters_id, self.archetype_list, deck_archetypes = generate_archetypes(
-    #         self.X, self.cards_data, self.feature_names, n_cards=4
-    #     )
-    #     self.df['Archetype'] = deck_archetypes
-        self.ci_data, self.df_winrates = make_matchup_matrix(
-            self.df, self.res_df, self.cluster_map, self.clusters_id, self.archetype_list
-        )
 
     @property
     def date_filter(self):
         if self.date_range is not None:
             return (self.df['Date'] >= self.date_range[0]) & (self.df['Date'] <= self.date_range[1])
         else:
+            # Needs to broadcast with other filters.
+            #
             return True
+        
+    @property
+    def match_date_filter(self):
+        if self.date_range is not None:
+            return (self.res_df['Date'] >= self.date_range[0]) & (self.res_df['Date'] <= self.date_range[1])
+        else:
+            # Never broadcast with other filters.
+            #
+            return np.ones(self.res_df.shape[0])
     
     @property
     def contents_filter(self):
@@ -190,6 +193,28 @@ class MTGAnalyzer(param.Parameterized):
         # Return row indices that satisfy all conditions
         self.valid_rows = np.where(row_mask)[0]
         self.valid_wr_rows = np.where(row_mask & ~self.df['Invalid_WR'])[0]
+
+        self.valid_match_rows = np.where(self.match_date_filter)[0]
+
+    @param.depends('valid_match_rows', watch=True)
+    def set_archetypes(self):
+        # print(f'{self.res_df=}')
+        # print(f'{self.res_df.loc[self.valid_match_rows]=}')
+        # print(f'{self.archetype_list=}')
+        # print(f'{pd.Series(self.archetype_list).loc[self.valid_match_rows].to_list()=}')
+        self.ci_data, self.df_winrates = make_matchup_matrix(
+            self.df, 
+            self.res_df.loc[self.valid_match_rows], 
+            self.cluster_map, 
+            self.clusters_id, 
+            self.archetype_list,
+        )
+        archetypes = self.df.loc[self.valid_wr_rows]['Archetype']
+        self.meta_share = {
+            self.cluster_map[k]: v*100 for k,v in (
+                archetypes.value_counts()/archetypes.shape[0]
+            ).to_dict().items()
+        }
 
     @param.depends('valid_wr_rows')
     def get_selection_info(self):
@@ -519,9 +544,10 @@ class MTGAnalyzer(param.Parameterized):
             make_combined_matchup_html(
                 self.ci_data, 
                 self.archetype_list, 
-                self.df_winrates, 
+                self.df_winrates,
+                self.meta_share,
                 self.cards_data, 
-                plot_width=200, 
+                plot_width=150, 
                 labels_width=250
             ),
         )

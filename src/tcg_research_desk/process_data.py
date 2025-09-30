@@ -340,6 +340,10 @@ def load_data(data_path='processed_data', lookback_days=365):
             sparse matrix of card counts, 
             fitted CountVectorizer vocabulary,
             dictionary for oracleid lookups,
+            json with card data for vis (minified AtomicCards),
+            cluster map,
+            cluster ids,
+            archetype label for each deck,
         )
     """
     # Load the preprocessed data
@@ -356,6 +360,8 @@ def load_data(data_path='processed_data', lookback_days=365):
     
     with open(Path(data_path) / 'results_data.json', 'r') as f:
         res_df = pd.DataFrame(json.load(f))
+
+    res_df['Date'] = pd.to_datetime(res_df['Date']).dt.date
 
     # Filter to recent data
     cutoff_date = (pd.to_datetime('today') - pd.Timedelta(days=lookback_days)).date()

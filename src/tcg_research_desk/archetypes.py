@@ -195,29 +195,29 @@ def make_matchup_matrix(df, res_df, cluster_map, clusters_id, archetype_list):
         suffixes = ('_W','_L')
     )
 
-    # TODO There is a bug here if we end up with an archetype that doesn't have any valid matches played against others.
     # Win counts matrix (W vs L)
     #
     df_wins = pd.crosstab(
         res_arch['Archetype_W'], res_arch['Archetype_L'], margins=False
     ).reindex(
-        list(clusters_id)
+        index=list(clusters_id), columns=list(clusters_id), fill_value=0  # Add fill_value
     ).rename(
         columns=cluster_map, index=cluster_map
-    )[
-        archetype_list
-    ]
+    ).reindex(
+        index=archetype_list, columns=archetype_list, fill_value=0  # Reindex again to ensure all archetypes present
+    )
 
     # Loss counts matrix (L vs W) - transpose the matchup
+    #
     df_losses = pd.crosstab(
         res_arch['Archetype_L'], res_arch['Archetype_W'], margins=False
     ).reindex(
-        list(clusters_id)
+        index=list(clusters_id), columns=list(clusters_id), fill_value=0  # Add fill_value
     ).rename(
         columns=cluster_map, index=cluster_map
-    )[
-        archetype_list
-    ]
+    ).reindex(
+        index=archetype_list, columns=archetype_list, fill_value=0  # Reindex again to ensure all archetypes present
+    )
 
     # Combine for total games and win percentages
     df_matches = df_wins.add(df_losses, fill_value=0)
