@@ -735,7 +735,7 @@ To filter down the decks you're looking at, you can do any of the following:
                 pn.Column(analyzer.get_matchup_matrix, name="Matchup Matrix"),
                 # TODO
                 # Temporal analysis (moving average population + wr)
-                sizing_mode='stretch_width',
+                sizing_mode='stretch_both',
                 dynamic=True, # Only render the active tab.
             ),
         ],
