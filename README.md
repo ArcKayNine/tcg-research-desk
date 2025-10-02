@@ -11,16 +11,15 @@ There is some major functionality/things to investigate before making this more 
 TODO
 - Bug: "Unholy Annex // Ritual Chamber" and "Unholy Annex && Ritual Chamber" both show up in the data.
 - Bug: "(BRO 16)", "(DAR 213)", etc. show up in data for Pioneer.
-- Bug: All decks have valid WRs.
+- Bug: All decks have valid WRs - Fix globbing in get_tournament_files (related to broader problem of format id from file).
 - Split into preprocess and postprocess pip imports (mainly an sklearn thing).
 - Process_data:
     - TODO: Need to fix the below, currently melee doesn't have round results.
     - Remove pre-modern and premodern from modern
+- Docco/how to.
 
 DONE (Pending testing)
-- Handle for when no selected decks play 0 coppies of any card.
-- Process_data also saves a minimized AtomicCards.json
-- Process_data to also save opening clusters
+
 
 DONE
 - Lock light/dark mode.
@@ -38,6 +37,9 @@ DONE
 - Win rate scatter legend placement.
 - Archetype bundles.
 - Reset all selections option.
+- Handle for when no selected decks play 0 coppies of any card.
+- Process_data also saves a minimized AtomicCards.json
+- Process_data to also save opening clusters
 
 ### V2 Goals
 - Temporal analysis.

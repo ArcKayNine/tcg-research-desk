@@ -42,7 +42,14 @@ def get_tournament_files(base_path='../MTG_decklistcache/Tournaments', lookback_
     # TODO Remove pre-modern and premodern from modern
     #
     patterns = [
+        # Melee pattern
+        #
         f"*/{date.year}/{date.month:02d}/{date.day:02d}/*-{fmt}*.json"
+        for date in date_range
+    ] + [
+        # MTGO pattern
+        #
+        f"*/{date.year}/{date.month:02d}/{date.day:02d}/{fmt}*.json"
         for date in date_range
     ]
     
@@ -126,6 +133,7 @@ def process_mtg_data(lookback_days=182, fmt='Modern'):
                     # Everything is fine.
                     #
                     deck_df['Invalid_WR'] = False
+
                 # TODO: Need to fix the below, currently melee doesn't have round results.
                 elif data['Rounds'] is not None and len(data['Rounds']):
                     # We need to build the win rates from the individual rounds.
@@ -227,7 +235,8 @@ def process_mtg_data(lookback_days=182, fmt='Modern'):
                 card_info[k] = [{
                     'manaCost': v[0].get('manaCost', ''),
                     'colors': v[0].get('colors', ''),
-                    'types': v[0].get('types', '')
+                    'types': v[0].get('types', ''),
+                    'oracleid': v[0]['identifiers']['scryfallOracleId']
                 }]
 
                 # OracleID

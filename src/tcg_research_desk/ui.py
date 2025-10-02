@@ -181,6 +181,11 @@ class MTGAnalyzer(param.Parameterized):
         else:
             return True
 
+    def card_name_formatter(self, card_name):
+        # Return HTML with data attribute for the image URL
+        #
+        return f"""<hover-card oracleId="{self.oracleid_lookup.get(card_name)}">{card_name}</hover-card><br>"""
+    
     @param.depends('date_range', 'selected_cards', 'excluded_cards', 'selected_archetype', watch=True)
     def find_valid_rows(self):
         """
@@ -209,7 +214,10 @@ class MTGAnalyzer(param.Parameterized):
             self.clusters_id, 
             self.archetype_list,
         )
-        archetypes = self.df.loc[self.valid_wr_rows]['Archetype']
+        if self.date_range is not None:
+            archetypes = self.df.loc[self.date_filter]['Archetype']
+        else:
+            archetypes = self.df['Archetype']
         self.meta_share = {
             self.cluster_map[k]: v*100 for k,v in (
                 archetypes.value_counts()/archetypes.shape[0]
@@ -308,15 +316,10 @@ class MTGAnalyzer(param.Parameterized):
         # Then do the name column.
         formatters['Card'] = {'type': 'html'}
 
-        def card_name_formatter(card_name):
-            # Return HTML with data attribute for the image URL
-            #
-            return f"""<hover-card oracleId="{self.oracleid_lookup.get(card_name)}">{card_name}</hover-card><br>"""
-
         mb_counts_df = mb_counts_df.reset_index()
-        mb_counts_df['Card'] = mb_counts_df['Card'].apply(card_name_formatter)
+        mb_counts_df['Card'] = mb_counts_df['Card'].apply(self.card_name_formatter)
         sb_counts_df = sb_counts_df.reset_index()
-        sb_counts_df['Card'] = sb_counts_df['Card'].apply(card_name_formatter)
+        sb_counts_df['Card'] = sb_counts_df['Card'].apply(self.card_name_formatter)
 
         mb_table = pn.widgets.Tabulator(
             mb_counts_df, 
@@ -360,11 +363,11 @@ class MTGAnalyzer(param.Parameterized):
         # We need to handle for when the card shows up just in sb/mb/both.
         #
         if mb_idx is None:
-            mb_copies = [np.nan]
+            mb_copies = []
             _, _, sb_copies = sparse.find(self.X[self.valid_rows][:, sb_idx])
             n_decks = sb_copies.shape[0]
         elif sb_idx is None:
-            sb_copies = [np.nan]
+            sb_copies = []
             _, _, mb_copies = sparse.find(self.X[self.valid_rows][:, mb_idx])
             n_decks = mb_copies.shape[0]
         else:
@@ -375,8 +378,8 @@ class MTGAnalyzer(param.Parameterized):
             sb_copies = self.X[self.valid_rows][list(d), sb_idx].toarray().flatten()
             n_decks = len(d)
 
-        max_mb_copies=np.nanmax(mb_copies) if mb_copies.shape[0] else 0
-        max_sb_copies=np.nanmax(sb_copies) if sb_copies.shape[0] else 0
+        max_mb_copies=np.nanmax(mb_copies) if len(mb_copies) else 0
+        max_sb_copies=np.nanmax(sb_copies) if len(sb_copies) else 0
         bins = np.arange(-0.5, np.nanmax([max_mb_copies, max_sb_copies, 5]), 1)
         # mb_y, _ = np.histogram(mb_copies, bins, density=True)
         # sb_y, _ = np.histogram(sb_copies, bins, density=True)
@@ -540,17 +543,23 @@ class MTGAnalyzer(param.Parameterized):
 
     @param.depends('df_winrates')
     def get_matchup_matrix(self):
-        return pn.pane.HTML(
-            make_combined_matchup_html(
-                self.ci_data, 
-                self.archetype_list, 
-                self.df_winrates,
-                self.meta_share,
-                self.cards_data, 
-                plot_width=150, 
-                labels_width=250
-            ),
-        )
+        if self.meta_share:
+            return pn.pane.HTML(
+                make_combined_matchup_html(
+                    self.ci_data, 
+                    self.archetype_list, 
+                    self.df_winrates,
+                    self.meta_share,
+                    self.cards_data, 
+                    hover=True,
+                    plot_width=150, 
+                    labels_width=250
+                ),
+            )
+        else:
+            return pn.pane.Markdown(
+                "No data available, please change the date filter."
+            )
 
 # Create the dashboard
 #
@@ -595,6 +604,7 @@ def create_dashboard(df, res_df, X, vocabulary, oracleid_lookup, cards_data, clu
         html_options=[make_card_stack(
             a.split('\n'), 
             analyzer.cards_data, 
+            hover=True,
             fix_width=140, 
             show_mana=False,
             font_size='9px',
@@ -625,7 +635,7 @@ def create_dashboard(df, res_df, X, vocabulary, oracleid_lookup, cards_data, clu
     description = pn.pane.HTML(
         '''
         Urza's Research Desk brought to you by me, <a target="_blank" rel="noopener noreferrer" href="https://bsky.app/profile/arckaynine.bsky.social">ArcKayNine</a>.<br>
-        All data comes courtesy of the excellent work done by <a target="_blank" rel="noopener noreferrer" href="https://github.com/fbettega/MTG_decklistcache.git">fbettega</a>, built upon work by Badaro and others.<br>      
+        All data comes courtesy of the excellent work done by <a target="_blank" rel="noopener noreferrer" href="https://github.com/fbettega/MTG_decklistcache.git">fbettega</a>, built upon work by Badaro and others.<br>
         For more of my work, check out my blog, <a target="_blank" rel="noopener noreferrer" href="https://compulsiveresearchmtg.blogspot.com">CompulsiveResearchMtg</a> or the exploits of my team, <a href="https://bsky.app/profile/busstop-mtg.bsky.social">Team Bus Stop</a>.<br>
         If you find this useful, valuable, or interesting, consider supporting further work via my <a target="_blank" rel="noopener noreferrer" href="https://ko-fi.com/arckaynine">Ko-fi</a>.<br>
         Urza's Research Desk is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.<br>
@@ -705,6 +715,7 @@ To filter down the decks you're looking at, you can do any of the following:
 
     drill_down_view = pn.Row(
         archetype_drill_down_controls,
+        pn.Spacer(width=5),
         pn.Tabs(
             aggregate_view,
             analysis_view,

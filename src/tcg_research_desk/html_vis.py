@@ -25,7 +25,7 @@ COLOR_MAP_PIPING = {
     'Land': '#9e9282',
 }
 
-def make_card_html(card_name, mtgjson_data, fix_width=False, show_mana=True, font_size='7px'):
+def make_card_html(card_name, mtgjson_data, hover=False, fix_width=False, show_mana=True, font_size='7px'):
     card_info = mtgjson_data.get(card_name, [{}])[0]
     mana_cost = card_info.get('manaCost', '')
     colors = card_info.get('colors', [])
@@ -78,7 +78,14 @@ def make_card_html(card_name, mtgjson_data, fix_width=False, show_mana=True, fon
 
     width_str = f'width: {fix_width}px;' if fix_width else ''
 
+    if hover:
+        hover_start = f'<hover-card oracleId="{card_info.get('oracleid','')}" style="display: contents;">'
+        hover_end = f'</hover-card>'
+    else:
+        hover_start, hover_end = '',''
+
     return f"""
+    {hover_start}
     <div style="
         background: {gradient_css};
         padding: {piping}px;
@@ -110,19 +117,23 @@ def make_card_html(card_name, mtgjson_data, fix_width=False, show_mana=True, fon
             overflow: hidden;
             text-overflow: ellipsis;
             font-size: clamp(4px, 1vw, {font_size});
-        ">{card_name}</div>
+        ">
+        {card_name}
+        </div>
         {mana}
     </div>
     </div>
+    {hover_end}
     """
 
-def make_card_stack(card_names, mtgjson_data, fix_width=False, show_mana=True, font_size='7px'):
+def make_card_stack(card_names, mtgjson_data, hover=False, fix_width=False, show_mana=True, font_size='7px'):
     num_cards = len(card_names)
     width = f'width: {fix_width}px;' if fix_width else 'width:100%; max-width:100%; box-sizing:border-box;'
     stack = ''.join([
         make_card_html(
             card, 
             mtgjson_data, 
+            hover=hover,
             fix_width=fix_width, 
             show_mana=show_mana, 
             font_size=font_size
@@ -156,7 +167,7 @@ def make_card_stack(card_names, mtgjson_data, fix_width=False, show_mana=True, f
 
 def make_matchup_matrix(
     archetypes, matchups,
-    cards_data,
+    cards_data, hover=True,
     cell_size=40, row_height=40,
     levels=4, vertical_spacing=35, label_width=60
 ):
@@ -186,7 +197,7 @@ def make_matchup_matrix(
 
     for i, col_arch in enumerate(archetypes):
         card_list = col_arch.split("\n")
-        card_stack_html = make_card_stack(card_list, cards_data, fix_width=label_width, show_mana=False)
+        card_stack_html = make_card_stack(card_list, cards_data, hover=hover, fix_width=label_width, show_mana=False)
 
         # stagger the vertical position in a repeating pattern
         level = i % levels
@@ -278,6 +289,7 @@ def make_combined_matchup_html(
     matchups,                # dataframe with matchups 
     meta_share,              # dict with meta share
     cards_data,              # data for html card stacks
+    hover=True,              # hover on card labels?
     plot_width=600,          # px
     labels_width=280,        # px: fixed width for the left column
     row_height=40,           # px per row
@@ -286,13 +298,13 @@ def make_combined_matchup_html(
 ):
     #############################################
     # Make the matrix first to get header height.
-    matrix_html, top_margin = make_matchup_matrix(sorted_archetypes, matchups, cards_data, levels=4)
+    matrix_html, top_margin = make_matchup_matrix(sorted_archetypes, matchups, cards_data, hover=hover, levels=4)
 
     #######################################################################
     # LABELS COLUMN: fixed width; each row forces its content to width:100%
     left_rows = []
     for a in sorted_archetypes:
-        stack = make_card_stack(a.split('\n'), cards_data)
+        stack = make_card_stack(a.split('\n'), cards_data, hover=hover)
         left_rows.append(
             # Row container (fixed height/width)
             f"<div style='height:{row_height}px; width:{labels_width}px; "
@@ -349,10 +361,17 @@ def make_combined_matchup_html(
             f'top:{center_y-4}px; width:8px; height:8px; '
             'background:black; border-radius:50%;"></div>'
         )
+        # Label
+        scatter_items.append(
+            f'<div style="position:absolute; right:0%; '
+            f'top:{center_y-4-row_height/3}px; font-size:{row_height/3}px">'
+            f'{wr*100:.1f}%</div>'
+        )
 
     scatter_col_html = (
         f'<div style="position:relative; width:{plot_width}px; height:{plot_height}px; '
         f'border-left:1px solid #ccc; box-sizing:border-box; margin-top:{top_margin}px;">'
+        f'<div style="position: absolute; top: -30px;  width:{plot_width}px; text-align:center;"> Archetype Win Rate </div>'
         + "".join(scatter_items) +
         '</div>'
     )
@@ -398,6 +417,7 @@ def make_combined_matchup_html(
     meta_share_html = (
         f'<div style="position:relative; width:{plot_width}px; height:{plot_height}px; '
         f'border-left:1px solid #ccc; box-sizing:border-box; margin-top:{top_margin}px;">'
+        f'<div style="position: absolute; top: -30px;  width:{plot_width}px; text-align:center;"> Metagame Share </div>'
         + "".join(bars) +
         '</div>'
     )
