@@ -327,6 +327,7 @@ class MTGAnalyzer(param.Parameterized):
             pagination='local', 
             show_index=False,
             disabled=True,
+            sizing_mode='stretch_both',
         )
         sb_table = pn.widgets.Tabulator(
             sb_counts_df, 
@@ -334,16 +335,19 @@ class MTGAnalyzer(param.Parameterized):
             pagination='local', 
             show_index=False,
             disabled=True,
+            sizing_mode='stretch_both',
         )
     
         return pn.Row(
             pn.Column(
                 pn.pane.HTML('<h3>Main</h3>'),
                 mb_table,
+                sizing_mode='stretch_both',
             ), 
             pn.Column(
                 pn.pane.HTML('<h3>Sideboard</h3>'),
                 sb_table,
+                sizing_mode='stretch_both',
             ),
         )
      
