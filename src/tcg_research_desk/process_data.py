@@ -244,8 +244,15 @@ def process_mtg_data(lookback_days=182, fmt='Modern'):
                 oracleid_lookup[k] = v[0]['identifiers']['scryfallOracleId']
                 
                 # If we have a split card, also add the front name for robust behavior
-                if '//' in k:
+                if ' // ' in k:
                     oracleid_lookup[k.split('//')[0].strip()] = v[0]['identifiers']['scryfallOracleId']
+
+                    card_info[k.split('//')[0].strip()] = [{
+                        'manaCost': v[0].get('manaCost', ''),
+                        'colors': v[0].get('colors', ''),
+                        'types': v[0].get('types', ''),
+                        'oracleid': v[0]['identifiers']['scryfallOracleId']
+                    }]
 
             else:
                 for face in v:

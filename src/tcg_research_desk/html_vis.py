@@ -78,14 +78,14 @@ def make_card_html(card_name, mtgjson_data, hover=False, fix_width=False, show_m
 
     width_str = f'width: {fix_width}px;' if fix_width else ''
 
-    if hover:
-        hover_start = f'<hover-card oracleId="{card_info.get('oracleid','')}" style="display: contents;">'
+    oid = card_info.get('oracleid','')
+    if hover and oid:
+        hover_start = f'<hover-card oracleId="{oid}">'
         hover_end = f'</hover-card>'
     else:
         hover_start, hover_end = '',''
 
     return f"""
-    {hover_start}
     <div style="
         background: {gradient_css};
         padding: {piping}px;
@@ -118,12 +118,13 @@ def make_card_html(card_name, mtgjson_data, hover=False, fix_width=False, show_m
             text-overflow: ellipsis;
             font-size: clamp(4px, 1vw, {font_size});
         ">
+        {hover_start}
         {card_name}
+        {hover_end}
         </div>
         {mana}
     </div>
     </div>
-    {hover_end}
     """
 
 def make_card_stack(card_names, mtgjson_data, hover=False, fix_width=False, show_mana=True, font_size='7px'):

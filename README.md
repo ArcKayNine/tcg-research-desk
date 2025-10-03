@@ -17,12 +17,11 @@ TODO
     - TODO: Need to fix the below, currently melee doesn't have round results.
     - Remove pre-modern and premodern from modern
 - Docco/how to.
-- Hover broken on flip cards in HTML.
 - HTML hover in top left corner.
 - Confidence on matrix.
 
 DONE (Pending testing)
-
+- Hover broken on flip cards in HTML.
 
 DONE
 - Lock light/dark mode.
