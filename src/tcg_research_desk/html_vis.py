@@ -166,7 +166,7 @@ def make_card_stack(card_names, mtgjson_data, hover=False, fix_width=False, show
     </div>
     """.replace('\n','')
 
-def make_matchup_matrix(
+def make_matchup_html_matrix(
     archetypes, matchups,
     cards_data, hover=True,
     cell_size=40, row_height=40,
@@ -299,7 +299,7 @@ def make_combined_matchup_html(
 ):
     #############################################
     # Make the matrix first to get header height.
-    matrix_html, top_margin = make_matchup_matrix(sorted_archetypes, matchups, cards_data, hover=hover, levels=4)
+    matrix_html, top_margin = make_matchup_html_matrix(sorted_archetypes, matchups, cards_data, hover=hover, levels=4)
 
     #######################################################################
     # LABELS COLUMN: fixed width; each row forces its content to width:100%

@@ -13,15 +13,14 @@ TODO
 - Bug: "(BRO 16)", "(DAR 213)", etc. show up in data for Pioneer.
 - Bug: All decks have valid WRs - Fix globbing in get_tournament_files (related to broader problem of format id from file).
 - Split into preprocess and postprocess pip imports (mainly an sklearn thing).
-- Process_data:
-    - TODO: Need to fix the below, currently melee doesn't have round results.
-    - Remove pre-modern and premodern from modern
+- Remove pre-modern and premodern from modern
 - Docco/how to.
-- HTML hover in top left corner.
 - Confidence on matrix.
 
 DONE (Pending testing)
 - Hover broken on flip cards in HTML.
+- HTML hover in top left corner.
+- Scale down.
 
 DONE
 - Lock light/dark mode.
@@ -54,3 +53,4 @@ DONE
 - Card search on mobile.
 - Plotting accessibility features (colours and fill/marker styles, not just colour).
 - Highlight cards of interest (extreme wr variation by qtty within archetypes).
+- Strip out as much data as possible. (do some of the tourney/player/archetype merging in preprocess, only keep card data needed for vis).

@@ -42,7 +42,7 @@ class MTGAnalyzer(param.Parameterized):
 
     selected_archetype = param.String(default=None, allow_None=True, doc="Selected archetype")
 
-    selected_card = param.String(default='', doc="Card to analyze in detail")
+    selected_analyze_card = param.List(default=[], doc="Cards to analyze in detail")
 
     df_winrates = param.DataFrame(doc="Matchup matrix win rates")
     
@@ -229,7 +229,7 @@ class MTGAnalyzer(param.Parameterized):
         return pn.Row(
             pn.pane.Markdown(
                 f'You are currently looking at {self.valid_rows.shape[0]} decks, {self.valid_wr_rows.shape[0]} of which have valid win rate information.',
-                width=225,
+                width=200,
                 margin=4,
             ),
             pn.widgets.TooltipIcon(
@@ -339,6 +339,7 @@ Each filter stacks - use the "Reset filter" button on the left to clear selectio
             show_index=False,
             disabled=True,
             sizing_mode='stretch_both',
+            widths={'Card': 150,},# '0': 50, '1': 50, '2': 50, '3': 50, '4+': 50,}
         )
         sb_table = pn.widgets.Tabulator(
             sb_counts_df, 
@@ -347,6 +348,7 @@ Each filter stacks - use the "Reset filter" button on the left to clear selectio
             show_index=False,
             disabled=True,
             sizing_mode='stretch_both',
+            widths={'Col A': 100, 'Col B': 150, 'Col C': 80}
         )
     
         return pn.Row(
@@ -362,199 +364,208 @@ Each filter stacks - use the "Reset filter" button on the left to clear selectio
             ),
         )
      
-    @param.depends('selected_card', 'valid_rows')
+    @param.depends('selected_analyze_card', 'valid_rows')
     def get_card_analysis(self):
         """Analyse the prevalence of a specific card, quantity distribution."""
 
-        if not self.selected_card:
+        if not self.selected_analyze_card:
             return pn.pane.Markdown("Select a card to see analysis")
+        
+        display = list()
             
-        mb_idx = self.feature_names.get(self.selected_card)
-        sb_idx = self.feature_names.get(f"{self.selected_card}_SB")
-        
-        if (mb_idx is None) and (sb_idx is None):
-            return pn.pane.Markdown("Card not found in dataset")
-        
-        # We need to handle for when the card shows up just in sb/mb/both.
-        #
-        if mb_idx is None:
-            mb_copies = []
-            _, _, sb_copies = sparse.find(self.X[self.valid_rows][:, sb_idx])
-            n_decks = sb_copies.shape[0]
-        elif sb_idx is None:
-            sb_copies = []
-            _, _, mb_copies = sparse.find(self.X[self.valid_rows][:, mb_idx])
-            n_decks = mb_copies.shape[0]
-        else:
-            mb_d, _ = self.X[self.valid_rows][:, mb_idx].nonzero()
-            sb_d, _ = self.X[self.valid_rows][:, sb_idx].nonzero()
-            d = set(np.concatenate([mb_d, sb_d]))
-            mb_copies = self.X[self.valid_rows][list(d), mb_idx].toarray().flatten()
-            sb_copies = self.X[self.valid_rows][list(d), sb_idx].toarray().flatten()
-            n_decks = len(d)
+        for card in self.selected_analyze_card:
+            mb_idx = self.feature_names.get(card)
+            sb_idx = self.feature_names.get(f"{card}_SB")
+            
+            if (mb_idx is None) and (sb_idx is None):
+                return pn.pane.Markdown("Card not found in dataset")
+            
+            # We need to handle for when the card shows up just in sb/mb/both.
+            #
+            if mb_idx is None:
+                mb_copies = []
+                _, _, sb_copies = sparse.find(self.X[self.valid_rows][:, sb_idx])
+                n_decks = sb_copies.shape[0]
+            elif sb_idx is None:
+                sb_copies = []
+                _, _, mb_copies = sparse.find(self.X[self.valid_rows][:, mb_idx])
+                n_decks = mb_copies.shape[0]
+            else:
+                mb_d, _ = self.X[self.valid_rows][:, mb_idx].nonzero()
+                sb_d, _ = self.X[self.valid_rows][:, sb_idx].nonzero()
+                d = set(np.concatenate([mb_d, sb_d]))
+                mb_copies = self.X[self.valid_rows][list(d), mb_idx].toarray().flatten()
+                sb_copies = self.X[self.valid_rows][list(d), sb_idx].toarray().flatten()
+                n_decks = len(d)
 
-        max_mb_copies=np.nanmax(mb_copies) if len(mb_copies) else 0
-        max_sb_copies=np.nanmax(sb_copies) if len(sb_copies) else 0
-        bins = np.arange(-0.5, np.nanmax([max_mb_copies, max_sb_copies, 5]), 1)
-        # mb_y, _ = np.histogram(mb_copies, bins, density=True)
-        # sb_y, _ = np.histogram(sb_copies, bins, density=True)
+            max_mb_copies=np.nanmax(mb_copies) if len(mb_copies) else 0
+            max_sb_copies=np.nanmax(sb_copies) if len(sb_copies) else 0
+            bins = np.arange(-0.5, np.nanmax([max_mb_copies, max_sb_copies, 5]), 1)
+            # mb_y, _ = np.histogram(mb_copies, bins, density=True)
+            # sb_y, _ = np.histogram(sb_copies, bins, density=True)
 
-        mb_y, _ = np.histogram(mb_copies, bins)
-        mb_y[0] += self.valid_rows.shape[0] - n_decks
-        mb_y = mb_y / mb_y.sum()
+            mb_y, _ = np.histogram(mb_copies, bins)
+            mb_y[0] += self.valid_rows.shape[0] - n_decks
+            mb_y = mb_y / mb_y.sum()
 
-        sb_y, _ = np.histogram(sb_copies, bins)
-        sb_y[0] += self.valid_rows.shape[0] - n_decks
-        sb_y = sb_y / sb_y.sum()
+            sb_y, _ = np.histogram(sb_copies, bins)
+            sb_y[0] += self.valid_rows.shape[0] - n_decks
+            sb_y = sb_y / sb_y.sum()
 
-        return hv.Bars(
-            pd.DataFrame({
-                'Frequency': np.concatenate([mb_y, sb_y]),
-                'Qtty': [0,1,2,3,4,0,1,2,3,4],
-                'Board': ['M']*5 + ['SB'] * 5,
-                # 'B': ['Main'] * 5 + ['Sideboard'] * 5
-            }),
-            kdims=['Qtty', 'Board'],
-        ).opts(
-            width=400,
-            height=400,
-            title=f"Qtty Frequency",
-            toolbar=None, 
-            default_tools=[],
-            active_tools=[],
-        )
+            display.append(hv.Bars(
+                pd.DataFrame({
+                    'Frequency': np.concatenate([mb_y, sb_y]),
+                    'Qtty': [0,1,2,3,4,0,1,2,3,4],
+                    'Board': ['M']*5 + ['SB'] * 5,
+                    # 'B': ['Main'] * 5 + ['Sideboard'] * 5
+                }),
+                kdims=['Qtty', 'Board'],
+            ).opts(
+                width=375,
+                height=375,
+                title=f"Frequency: {card}",
+                toolbar=None, 
+                default_tools=[],
+                active_tools=[],
+            ))
+        return hv.Layout(display).cols(1)
     
-    @param.depends('selected_card', 'valid_wr_rows')
+    @param.depends('selected_analyze_card', 'valid_wr_rows')
     def get_winrate_analysis(self):
         """Perform card quantity based win rate analysis.
         Error bars are confidence interval on the binomial test.
         """
 
-        if not self.selected_card:
+        if not self.selected_analyze_card:
             return pn.pane.Markdown("Select a card to see win rate analysis")
             
-        # Calculate win rates by copy count
-        
-        if not self.selected_card in self.feature_names:
-            return pn.pane.Markdown("Card not found in dataset")
-        
-        plots = list()
+        display = list()
 
-        # Handle differently if the card doesn't show up in main/side.
-        #
-        
-        mb_idx = self.feature_names.get(self.selected_card)
-        if mb_idx is not None:    
-            copy_counts = self.X[self.valid_wr_rows][:, mb_idx].toarray()
-
-            # print(self.df.loc[self.valid_wr_rows,['Wins']].value_counts(), copy_counts)
+        for card in self.selected_analyze_card:
+            # Calculate win rates by copy count
             
-            mb_win_rates = []
-            for i in range(5):  # 0-4 copies
-                mask = copy_counts == i
-                wins = self.df.loc[self.valid_wr_rows].reset_index().loc[mask.ravel(), 'Wins'].sum()
-                total = wins + self.df.loc[self.valid_wr_rows].reset_index().loc[mask.ravel(), 'Losses'].sum()
-                if total:
-                    ci = binomtest(k=int(wins), n=int(total)).proportion_ci()
-                    winrate = wins/total if total else np.nan
-                    mb_win_rates.append({
-                        'copies': i-0.1, 
-                        'winrate': winrate,
-                        'errmin': winrate - ci.low,
-                        'errmax': ci.high - winrate,
-                    })
-                else:
-                    # For completeness
-                    #
-                    mb_win_rates.append({
-                        'copies': i-0.1, 
-                        'winrate': np.nan,
-                        'errmin': np.nan,
-                        'errmax': np.nan,
-                    })
+            if not card in self.feature_names:
+                display.append(pn.pane.Markdown("Card not found in dataset"))
             
-            plots.append(hv.Scatter(
-                mb_win_rates, 'copies', 'winrate', label='Main',
-            ).opts(size=7,))
-            plots.append(hv.ErrorBars(
-                mb_win_rates, 'copies', vdims=['winrate', 'errmin', 'errmax'],
-            ))
+            plots = list()
 
-        sb_idx = self.feature_names.get(f'{self.selected_card}_SB')
-        if sb_idx is not None:    
-            copy_counts = self.X[self.valid_wr_rows][:, sb_idx].toarray()
+            # Handle differently if the card doesn't show up in main/side.
+            #
             
-            sb_win_rates = []
-            for i in range(5):  # 0-4 copies
-                mask = copy_counts == i
-                wins = self.df.loc[self.valid_wr_rows].reset_index().loc[mask.ravel(), 'Wins'].sum()
-                total = wins + self.df.loc[self.valid_wr_rows].reset_index().loc[mask.ravel(), 'Losses'].sum()
+            mb_idx = self.feature_names.get(card)
+            if mb_idx is not None:    
+                copy_counts = self.X[self.valid_wr_rows][:, mb_idx].toarray()
 
-                if total:
-                    ci = binomtest(k=int(wins), n=int(total)).proportion_ci()
-                    winrate = wins/total if total else np.nan
-                    sb_win_rates.append({
-                        'copies': i+0.1, 
-                        'winrate': winrate,
-                        'errmin': winrate - ci.low,
-                        'errmax': ci.high - winrate,
-                    })
-                else:
-                    # For completeness
-                    #
-                    sb_win_rates.append({
-                        'copies': i+0.1, 
-                        'winrate': np.nan,
-                        'errmin': np.nan,
-                        'errmax': np.nan,
-                    })
-            
-            plots.append(hv.Scatter(
-                sb_win_rates, 'copies', 'winrate', label='Sideboard',
-            ).opts(size=7, toolbar=None, default_tools=[],))
-            plots.append(hv.ErrorBars(
-                sb_win_rates, 'copies', vdims=['winrate', 'errmin', 'errmax'],
-            ).opts(toolbar=None, default_tools=[],))
-
-        # Add helper lines for context, 50% and the average wr of selected decks.
-        #
-        wins = self.df.loc[self.valid_wr_rows]['Wins'].sum()
-        total = wins + self.df.loc[self.valid_wr_rows]['Losses'].sum()
-        wr = wins/total
-        # return hv.Curve([(0.5, 0.5),(5.5, 0.5)], 'copies', label='50% wr').opts(color='k', line_dash='dotted')
-
-        plots.extend([
-            hv.Curve([(-0.5, 0.5),(4.5, 0.5)], 'copies', 'winrate', label='50% wr').opts(
-                color='k', 
-                line_dash='dotted',
-                toolbar=None, 
-                default_tools=[],
-            ),
-            hv.Curve([(-0.5, wr),(4.5, wr)], 'copies', 'winrate', label='Deck average').opts(
-                color='k', 
-                line_dash='dashed',
-                toolbar=None, 
-                default_tools=[],
-            )
-        ])
+                # print(self.df.loc[self.valid_wr_rows,['Wins']].value_counts(), copy_counts)
                 
-        # Create line plot using HoloViews
-        win_rate_plot = hv.Overlay(plots).opts(
-            width=400,
-            height=400,
-            title=f"Win Rate by Copy Count",
-            ylabel='Win Rate',
-            xlabel='Number of Copies',
-            xlim=(-0.5, 4.5),
-            ylim=(-0.1, 1.1),
-            toolbar=None,
-            default_tools=[],
-            active_tools=[],
-            legend_position='bottom_left',
-            legend_cols=4,
-        )
+                mb_win_rates = []
+                for i in range(5):  # 0-4 copies
+                    mask = copy_counts == i
+                    wins = self.df.loc[self.valid_wr_rows].reset_index().loc[mask.ravel(), 'Wins'].sum()
+                    total = wins + self.df.loc[self.valid_wr_rows].reset_index().loc[mask.ravel(), 'Losses'].sum()
+                    if total:
+                        ci = binomtest(k=int(wins), n=int(total)).proportion_ci()
+                        winrate = wins/total if total else np.nan
+                        mb_win_rates.append({
+                            'copies': i-0.1, 
+                            'winrate': winrate,
+                            'errmin': winrate - ci.low,
+                            'errmax': ci.high - winrate,
+                        })
+                    else:
+                        # For completeness
+                        #
+                        mb_win_rates.append({
+                            'copies': i-0.1, 
+                            'winrate': np.nan,
+                            'errmin': np.nan,
+                            'errmax': np.nan,
+                        })
+                
+                plots.append(hv.Scatter(
+                    mb_win_rates, 'copies', 'winrate', label='Main',
+                ).opts(size=7,))
+                plots.append(hv.ErrorBars(
+                    mb_win_rates, 'copies', vdims=['winrate', 'errmin', 'errmax'],
+                ))
+
+            sb_idx = self.feature_names.get(f'{card}_SB')
+            if sb_idx is not None:    
+                copy_counts = self.X[self.valid_wr_rows][:, sb_idx].toarray()
+                
+                sb_win_rates = []
+                for i in range(5):  # 0-4 copies
+                    mask = copy_counts == i
+                    wins = self.df.loc[self.valid_wr_rows].reset_index().loc[mask.ravel(), 'Wins'].sum()
+                    total = wins + self.df.loc[self.valid_wr_rows].reset_index().loc[mask.ravel(), 'Losses'].sum()
+
+                    if total:
+                        ci = binomtest(k=int(wins), n=int(total)).proportion_ci()
+                        winrate = wins/total if total else np.nan
+                        sb_win_rates.append({
+                            'copies': i+0.1, 
+                            'winrate': winrate,
+                            'errmin': winrate - ci.low,
+                            'errmax': ci.high - winrate,
+                        })
+                    else:
+                        # For completeness
+                        #
+                        sb_win_rates.append({
+                            'copies': i+0.1, 
+                            'winrate': np.nan,
+                            'errmin': np.nan,
+                            'errmax': np.nan,
+                        })
+                
+                plots.append(hv.Scatter(
+                    sb_win_rates, 'copies', 'winrate', label='Sideboard',
+                ).opts(size=7, toolbar=None, default_tools=[],))
+                plots.append(hv.ErrorBars(
+                    sb_win_rates, 'copies', vdims=['winrate', 'errmin', 'errmax'],
+                ).opts(toolbar=None, default_tools=[],))
+
+            # Add helper lines for context, 50% and the average wr of selected decks.
+            #
+            wins = self.df.loc[self.valid_wr_rows]['Wins'].sum()
+            total = wins + self.df.loc[self.valid_wr_rows]['Losses'].sum()
+            wr = wins/total
+            # return hv.Curve([(0.5, 0.5),(5.5, 0.5)], 'copies', label='50% wr').opts(color='k', line_dash='dotted')
+
+            plots.extend([
+                hv.Curve([(-0.5, 0.5),(4.5, 0.5)], 'copies', 'winrate', label='50% wr').opts(
+                    color='k', 
+                    line_dash='dotted',
+                    toolbar=None, 
+                    default_tools=[],
+                ),
+                hv.Curve([(-0.5, wr),(4.5, wr)], 'copies', 'winrate', label='Deck average').opts(
+                    color='k', 
+                    line_dash='dashed',
+                    toolbar=None, 
+                    default_tools=[],
+                )
+            ])
+                    
+            # Create line plot using HoloViews
+            win_rate_plot = hv.Overlay(plots).opts(
+                width=375,
+                height=375,
+                title=f"Win Rate: {card}",
+                ylabel='Win Rate',
+                xlabel='Number of Copies',
+                xlim=(-0.5, 4.5),
+                ylim=(-0.1, 1.1),
+                toolbar=None,
+                default_tools=[],
+                active_tools=[],
+                legend_position='bottom_left',
+                legend_cols=4,
+            )
         
-        return win_rate_plot
+            display.append(win_rate_plot)
+        
+        return hv.Layout(display).cols(1)
 
     @param.depends('df_winrates')
     def get_matchup_matrix(self):
@@ -620,7 +631,7 @@ def create_dashboard(df, res_df, X, vocabulary, oracleid_lookup, cards_data, clu
             a.split('\n'), 
             analyzer.cards_data, 
             hover=True,
-            fix_width=120, 
+            fix_width=100, 
             show_mana=False,
             font_size='7px',
         ) for a in analyzer.archetype_list],
@@ -631,9 +642,11 @@ def create_dashboard(df, res_df, X, vocabulary, oracleid_lookup, cards_data, clu
     
     # Create card analysis widgets
     #
-    card_analysis = pn.widgets.Select(
+    card_analysis = pn.widgets.MultiChoice(
         name='Analyze Card',
-        options=[''] + analyzer.card_options,
+        options=analyzer.card_options,
+        value=[],
+        placeholder='Search for cards...',
         sizing_mode='stretch_width'
     )
     
@@ -641,7 +654,7 @@ def create_dashboard(df, res_df, X, vocabulary, oracleid_lookup, cards_data, clu
     #
     card_select.link(analyzer, value='selected_cards')
     card_exclude.link(analyzer, value='excluded_cards')
-    card_analysis.link(analyzer, value='selected_card')
+    card_analysis.link(analyzer, value='selected_analyze_card')
     date_range.link(analyzer, value='date_range')
     selected_archetype.link(analyzer, value='selected_archetype')
 
@@ -661,7 +674,7 @@ def create_dashboard(df, res_df, X, vocabulary, oracleid_lookup, cards_data, clu
         with param.parameterized.batch_call_watchers(analyzer):
             card_select.value = analyzer.param.selected_cards.default
             card_exclude.value = analyzer.param.excluded_cards.default
-            card_analysis.value = analyzer.param.selected_card.default
+            card_analysis.value = analyzer.param.selected_analyze_card.default
             date_range.value = initial_date_range
             selected_archetype.value = None
         
@@ -707,7 +720,7 @@ def create_dashboard(df, res_df, X, vocabulary, oracleid_lookup, cards_data, clu
             )
         ),
         sizing_mode='fixed',
-        width=300,
+        width=250,
     )
 
     # Views

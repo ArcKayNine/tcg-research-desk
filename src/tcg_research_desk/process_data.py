@@ -230,15 +230,6 @@ def process_mtg_data(lookback_days=182, fmt='Modern'):
             # Handle for overloaded card names.
             #
             if v[0].get('name') not in ['Pick Your Poison', 'Red Herring', 'Unquenchable Fury']:
-                # Html
-                #
-                card_info[k] = [{
-                    'manaCost': v[0].get('manaCost', ''),
-                    'colors': v[0].get('colors', ''),
-                    'types': v[0].get('types', ''),
-                    'oracleid': v[0]['identifiers']['scryfallOracleId']
-                }]
-
                 # OracleID
                 #
                 oracleid_lookup[k] = v[0]['identifiers']['scryfallOracleId']
@@ -248,6 +239,16 @@ def process_mtg_data(lookback_days=182, fmt='Modern'):
                     oracleid_lookup[k.split('//')[0].strip()] = v[0]['identifiers']['scryfallOracleId']
 
                     card_info[k.split('//')[0].strip()] = [{
+                        'manaCost': v[0].get('manaCost', ''),
+                        'colors': v[0].get('colors', ''),
+                        'types': v[0].get('types', ''),
+                        'oracleid': v[0]['identifiers']['scryfallOracleId']
+                    }]
+
+                else:
+                    # Html
+                    #
+                    card_info[k] = [{
                         'manaCost': v[0].get('manaCost', ''),
                         'colors': v[0].get('colors', ''),
                         'types': v[0].get('types', ''),
@@ -304,9 +305,6 @@ def process_mtg_data(lookback_days=182, fmt='Modern'):
     # Save processed data
     output_data = {
         'decks': df[['Player', 'Wins', 'Losses', 'Date', 'Tournament', 'Invalid_WR', 'Archetype']].to_dict('records'),
-        # 'results': ,
-        # 'cluster_info': [],
-        # 'feature_names': vectorizer.get_feature_names_out().tolist(),
         'cluster_map': cluster_map,
         'clusters_id': clusters_id,
         'archetype_list': archetype_list,

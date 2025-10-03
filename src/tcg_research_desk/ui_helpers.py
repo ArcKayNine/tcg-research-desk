@@ -60,13 +60,12 @@ class HTMLRadioIconGroup(pn.widgets.Widget):
         
         # Create new components
         for idx, (opt, html) in enumerate(zip(self.options, self.html_options)):
-            html_pane = pn.pane.HTML(html, margin=(5, 0, 5, 10))
+            html_pane = pn.pane.HTML(html, margin=0)
             toggle = pn.widgets.ToggleIcon(
                 value=(opt == self.value),
                 icon=self.icon,
                 size=self.icon_size,
                 sizing_mode=None,
-                margin=(5, 10, 5, 0)
             )
             toggle.param.watch(self._make_toggle_callback(idx), 'value')
             
