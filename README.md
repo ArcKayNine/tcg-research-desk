@@ -17,10 +17,7 @@ TODO
 - Docco/how to.
 
 DONE (Pending testing)
-- Hover broken on flip cards in HTML.
-- HTML hover in top left corner.
-- Scale down.
-- Confidence on matrix.
+-
 
 DONE
 - Lock light/dark mode.
@@ -41,6 +38,11 @@ DONE
 - Handle for when no selected decks play 0 coppies of any card.
 - Process_data also saves a minimized AtomicCards.json
 - Process_data to also save opening clusters
+- Hover broken on flip cards in HTML.
+- HTML hover in top left corner.
+- Scale down.
+- Confidence on matrix.
+- Loading messages
 
 ### V2 Goals
 - Temporal analysis.
@@ -49,7 +51,6 @@ DONE
 - Show last data read time
 - Easy time select on format boundaries (new set release, bans).
 - Filter to specific event.
-- Loading messages
 - Card search on mobile.
 - Plotting accessibility features (colours and fill/marker styles, not just colour).
 - Highlight cards of interest (extreme wr variation by qtty within archetypes).
