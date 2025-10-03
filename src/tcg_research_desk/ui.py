@@ -519,7 +519,7 @@ Each filter stacks - use the "Reset filter" button on the left to clear selectio
                         })
                 
                 plots.append(hv.Scatter(
-                    sb_win_rates, 'copies', 'winrate', label='Sideboard',
+                    sb_win_rates, 'copies', 'winrate', label='SB',
                 ).opts(size=7, toolbar=None, default_tools=[],))
                 plots.append(hv.ErrorBars(
                     sb_win_rates, 'copies', vdims=['winrate', 'errmin', 'errmax'],
