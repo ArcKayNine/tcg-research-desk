@@ -167,10 +167,17 @@ def make_card_stack(card_names, mtgjson_data, hover=False, fix_width=False, show
     """.replace('\n','')
 
 def make_matchup_html_matrix(
-    archetypes, matchups,
-    cards_data, hover=True,
-    cell_size=40, row_height=40,
-    levels=4, vertical_spacing=35, label_width=60
+    archetypes, 
+    df_winrates, 
+    df_wr_lower, 
+    df_wr_upper,
+    cards_data, 
+    hover=True,
+    cell_size=40, 
+    row_height=40,
+    levels=4, 
+    vertical_spacing=35, 
+    label_width=60
 ):
     """
     Create a matchup matrix with horizontal card-stack headers at multiple vertical levels.
@@ -178,7 +185,9 @@ def make_matchup_html_matrix(
     Parameters
     ----------
     archetypes : list[str] - column/row archetypes
-    matchups : dict[(str,str) -> float] - win rates
+    df_winrates : DataFrame - win rates
+    df_wr_lower : DataFrame - win rates lower bound
+    df_wr_upper : DataFrame - win rates upper bound
     cell_size : int - width/height of matrix cell
     row_height : int - height of matrix row
     make_card_stack : callable - generates card stack HTML
@@ -246,29 +255,42 @@ def make_matchup_html_matrix(
     for row_arch in archetypes:
         row_cells = []
         for col_arch in archetypes:
-            wr = matchups.loc[row_arch, col_arch]
+            wr = df_winrates.loc[row_arch, col_arch]
+            wr_lower = df_wr_lower.loc[row_arch, col_arch]
+            wr_upper = df_wr_upper.loc[row_arch, col_arch]
             if isnan(wr):
                 bg_color = "#eee"
                 cell_content = ""
+                lower_bound = ""
+                upper_bound = ""
             else:
                 red = int(255 * min(1, 2 - wr*2))
                 green = int(255 * min(1, wr*2))
                 blue = int(255 * min(2 - wr*2, wr*2))
                 bg_color = f"rgb({red},{green},{blue})"
                 cell_content = f"{wr:.1%}"
-
+                lower_bound = f"{wr_lower:.1%}"
+                upper_bound = f"{wr_upper:.1%}"
+                
             row_cells.append(f'''
-                <div style="
-                    width:{cell_size}px;
-                    height:{row_height}px;
-                    background:{bg_color};
-                    display:flex;
-                    align-items:center;
-                    justify-content:center;
-                    font-size:10px;
-                    border:1px solid #ccc;
-                    box-sizing:border-box;
+                <div class="winrate-cell-container" style="position:relative; width:{cell_size}px; height:{row_height}px;">
+                <div class="cell" style="
+                width:100%;
+                height:100%;
+                background:{bg_color};
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                font-size:10px;
+                border:1px solid #ccc;
+                box-sizing:border-box;
+                cursor:pointer;
                 ">{cell_content}</div>
+                <div class="winrate-tooltip">
+                    <strong>Win Rate:</strong> {cell_content}<br>
+                    <strong>95% CI:</strong> [{lower_bound}, {upper_bound}]<br>
+                </div>
+                </div>
             ''')
         body_rows_html.append(
             '<div style="display:flex;">' + "".join(row_cells) + '</div>'
@@ -287,7 +309,9 @@ def make_matchup_html_matrix(
 def make_combined_matchup_html(
     ci_data,                 # list of (win_rate, archetype, err_low, err_high)
     sorted_archetypes,       # list of archetype names (top -> bottom)
-    matchups,                # dataframe with matchups 
+    df_wr,                   # dataframe with win rates 
+    df_wr_lower,             # dataframe with win rate lower bounds
+    df_wr_upper,             # dataframe with win rate upper bounds 
     meta_share,              # dict with meta share
     cards_data,              # data for html card stacks
     hover=True,              # hover on card labels?
@@ -299,7 +323,9 @@ def make_combined_matchup_html(
 ):
     #############################################
     # Make the matrix first to get header height.
-    matrix_html, top_margin = make_matchup_html_matrix(sorted_archetypes, matchups, cards_data, hover=hover, levels=4)
+    matrix_html, top_margin = make_matchup_html_matrix(
+        sorted_archetypes, df_wr, df_wr_lower, df_wr_upper, cards_data, hover=hover, levels=4
+    )
 
     #######################################################################
     # LABELS COLUMN: fixed width; each row forces its content to width:100%

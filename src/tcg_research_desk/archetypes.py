@@ -223,23 +223,30 @@ def make_matchup_matrix(df, res_df, cluster_map, clusters_id, archetype_list):
     df_matches = df_wins.add(df_losses, fill_value=0)
     df_winrates = df_wins.div(df_matches, fill_value=0)
 
-    # --- Prepare long-form winrate + match count ---
-    # df_wr_long = df_winrates.reset_index().melt(id_vars='Archetype_W', var_name='Opponent', value_name='WinRate')
-    # df_wr_long.rename(columns={'Archetype_W': 'Archetype'}, inplace=True)
+    # --- Compute confidence intervals for each matchup ---
+    df_lower = pd.DataFrame(index=df_winrates.index, columns=df_winrates.columns)
+    df_upper = pd.DataFrame(index=df_winrates.index, columns=df_winrates.columns)
 
-    # df_mc_long = df_matches.reset_index().melt(id_vars='Archetype_W', var_name='Opponent', value_name='MatchCount')
-    # df_mc_long.rename(columns={'Archetype_W': 'Archetype'}, inplace=True)
+    for deck in df_winrates.index:
+        for opponent in df_winrates.columns:
+            wins = df_wins.loc[deck, opponent] if deck in df_wins.index and opponent in df_wins.columns else 0
+            total = df_matches.loc[deck, opponent] if deck in df_matches.index and opponent in df_matches.columns else 0
+            
+            if pd.notna(total) and total > 0:
+                ci = binomtest(int(round(wins)), n=int(total)).proportion_ci(confidence_level=0.95)
+                df_lower.loc[deck, opponent] = ci.low
+                df_upper.loc[deck, opponent] = ci.high
+            else:
+                df_lower.loc[deck, opponent] = np.nan
+                df_upper.loc[deck, opponent] = np.nan
 
-    # df_merged = pd.merge(df_wr_long, df_mc_long, on=['Archetype', 'Opponent'])
-    # df_merged.dropna(subset=['WinRate'], inplace=True)
+    # Convert to float type
+    df_lower = df_lower.astype(float)
+    df_upper = df_upper.astype(float)
 
     # --- Aggregate wins and matches ---
     archetype_wins = (df_winrates * df_matches).sum(axis=1)
     archetype_matches = df_matches.sum(axis=1)
-
-    # --- Compute win rates ---
-    # win_rates = (archetype_wins / archetype_matches).reindex(sorted_archetypes)
-    # match_counts = archetype_matches.reindex(sorted_archetypes).astype(int)
 
     # --- Compute binomial confidence intervals ---
     ci_data = []
@@ -254,4 +261,4 @@ def make_matchup_matrix(df, res_df, cluster_map, clusters_id, archetype_list):
         else:
             ci_data.append((np.nan, archetype, np.nan, np.nan))
 
-    return ci_data, df_winrates
+    return ci_data, df_winrates, df_lower, df_upper

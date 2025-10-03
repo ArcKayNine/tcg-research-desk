@@ -15,12 +15,12 @@ TODO
 - Split into preprocess and postprocess pip imports (mainly an sklearn thing).
 - Remove pre-modern and premodern from modern
 - Docco/how to.
-- Confidence on matrix.
 
 DONE (Pending testing)
 - Hover broken on flip cards in HTML.
 - HTML hover in top left corner.
 - Scale down.
+- Confidence on matrix.
 
 DONE
 - Lock light/dark mode.

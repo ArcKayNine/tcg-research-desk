@@ -17,7 +17,7 @@ pn.extension(
     'tabulator', 
     sizing_mode="stretch_width", 
     throttled=True, 
-    js_files={'hover': 'hover.js'},
+    js_files={'hover': Path(__file__).parent / 'hover.js'},
 )
 hv.extension('bokeh')
 
@@ -207,7 +207,7 @@ class MTGAnalyzer(param.Parameterized):
         # print(f'{self.res_df.loc[self.valid_match_rows]=}')
         # print(f'{self.archetype_list=}')
         # print(f'{pd.Series(self.archetype_list).loc[self.valid_match_rows].to_list()=}')
-        self.ci_data, self.df_winrates = make_matchup_matrix(
+        self.ci_data, self.df_winrates, self.df_wr_lower, self.df_wr_upper = make_matchup_matrix(
             self.df, 
             self.res_df.loc[self.valid_match_rows], 
             self.cluster_map, 
@@ -575,12 +575,60 @@ Each filter stacks - use the "Reset filter" button on the left to clear selectio
                     self.ci_data, 
                     self.archetype_list, 
                     self.df_winrates,
+                    self.df_wr_lower,
+                    self.df_wr_upper,
                     self.meta_share,
                     self.cards_data, 
                     hover=True,
                     plot_width=150, 
                     labels_width=250
                 ),
+                stylesheets=[""".winrate-cell-container {
+  display: inline-block;
+}
+
+.winrate-tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+  transition: opacity 0.15s ease-in-out;
+  margin-bottom: 5px;
+}
+
+.winrate-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #333;
+}
+
+.winrate-cell-container:hover .winrate-tooltip,
+.winrate-cell-container:active .winrate-tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Mobile-specific: tap to toggle */
+@media (hover: none) {
+  .winrate-cell-container.active .winrate-tooltip {
+    visibility: visible;
+    opacity: 1;
+  }
+}"""]
             )
         else:
             return pn.pane.Markdown(
