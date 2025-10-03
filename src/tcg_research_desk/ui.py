@@ -228,13 +228,24 @@ class MTGAnalyzer(param.Parameterized):
     def get_selection_info(self):
         return pn.Row(
             pn.pane.Markdown(
-                f'You have selected {self.valid_rows.shape[0]} decks, {self.valid_wr_rows.shape[0]} of which have valid win rate information.',
-                sizing_mode='stretch_width',
+                f'You are currently looking at {self.valid_rows.shape[0]} decks, {self.valid_wr_rows.shape[0]} of which have valid win rate information.',
+                width=225,
+                margin=4,
             ),
             pn.widgets.TooltipIcon(
-                value="League data and other sources only show decks with 100% winrate, so they can't be included in win rate calculations. They still contribute to aggregation info.",
+                value="""
+League data and other sources only show decks with 100% winrate, so they can't be included in win rate calculations. They still contribute to aggregation info.
+
+To change your filter, you can do any of the following:
+- Select cards that are required in the 75
+- Select cards that cannot be in the 75
+- Select an aggregated archetype
+
+Each filter stacks - use the "Reset filter" button on the left to clear selections.
+""",
                 max_width=10
             ),
+            sizing_mode='fixed',
         )
 
     @param.depends('valid_wr_rows')
@@ -609,9 +620,9 @@ def create_dashboard(df, res_df, X, vocabulary, oracleid_lookup, cards_data, clu
             a.split('\n'), 
             analyzer.cards_data, 
             hover=True,
-            fix_width=140, 
+            fix_width=120, 
             show_mana=False,
-            font_size='9px',
+            font_size='7px',
         ) for a in analyzer.archetype_list],
         name='Archetype Selection',
         value=None,
@@ -654,7 +665,7 @@ def create_dashboard(df, res_df, X, vocabulary, oracleid_lookup, cards_data, clu
             date_range.value = initial_date_range
             selected_archetype.value = None
         
-    reset_button = pn.widgets.Button(name='Reset selections')#, button_type='primary')
+    reset_button = pn.widgets.Button(name='Reset filter')#, button_type='primary')
     reset_button.on_click(clear_selections)
 
     # Create layout groups
@@ -664,7 +675,7 @@ def create_dashboard(df, res_df, X, vocabulary, oracleid_lookup, cards_data, clu
     #
     controls = pn.Column(
         pn.pane.Markdown("""
-# Brought to you by:
+## Brought to you by:
 """),
         pn.Row(
             pn.pane.PNG(
@@ -683,20 +694,20 @@ def create_dashboard(df, res_df, X, vocabulary, oracleid_lookup, cards_data, clu
     )
 
     archetype_drill_down_controls = pn.Column(
-        pn.pane.Markdown(
-"""
-To filter down the decks you're looking at, you can do any of the following:
-- Select cards that are required in the 75
-- Select cards that cannot be in the 75
-- Select an archetype
-"""
-        ),
-        card_select,
-        card_exclude,
-        selected_archetype,
         analyzer.get_selection_info,
+        pn.Tabs(
+            pn.Column(
+                selected_archetype,
+                name="Filter by archetype"
+            ),
+            pn.Column(
+                card_select,
+                card_exclude,
+                name="Filter by card"
+            )
+        ),
         sizing_mode='fixed',
-        width=400,
+        width=300,
     )
 
     # Views
@@ -744,6 +755,7 @@ To filter down the decks you're looking at, you can do any of the following:
             ),
         ],
         theme_toggle=False,
+        sidebar_width=280,
     )
     
     return template
