@@ -17,7 +17,7 @@ pn.extension(
     'tabulator', 
     sizing_mode="stretch_width", 
     throttled=True, 
-    js_files={'hover': Path(__file__).parent / 'resources/hover.js'},
+    js_files={'hover': 'hover.js'},
 )
 hv.extension('bokeh')
 
