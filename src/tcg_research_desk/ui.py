@@ -444,7 +444,7 @@ Each filter stacks - use the "Reset filter" button on the left to clear selectio
         for card in self.selected_analyze_card:
             # Calculate win rates by copy count
             
-            if not card in self.feature_names:
+            if not card in self.feature_names and not f'{card}_SB' in self.feature_names:
                 display.append(pn.pane.Markdown("Card not found in dataset"))
             
             plots = list()
