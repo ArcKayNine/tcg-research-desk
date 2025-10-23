@@ -453,12 +453,13 @@ Each filter stacks - use the "Reset filter" button on the left to clear selectio
             #
             
             mb_idx = self.feature_names.get(card)
+            mb_win_rates = []
             if mb_idx is not None:    
                 copy_counts = self.X[self.valid_wr_rows][:, mb_idx].toarray()
 
                 # print(self.df.loc[self.valid_wr_rows,['Wins']].value_counts(), copy_counts)
                 
-                mb_win_rates = []
+                
                 for i in range(5):  # 0-4 copies
                     mask = copy_counts == i
                     wins = self.df.loc[self.valid_wr_rows].reset_index().loc[mask.ravel(), 'Wins'].sum()
@@ -482,18 +483,19 @@ Each filter stacks - use the "Reset filter" button on the left to clear selectio
                             'errmax': np.nan,
                         })
                 
-                plots.append(hv.Scatter(
-                    mb_win_rates, 'copies', 'winrate', label='Main',
-                ).opts(size=7,))
-                plots.append(hv.ErrorBars(
-                    mb_win_rates, 'copies', vdims=['winrate', 'errmin', 'errmax'],
-                ))
+            plots.append(hv.Scatter(
+                mb_win_rates, 'copies', 'winrate', label='Main',
+            ).opts(size=7,))
+            plots.append(hv.ErrorBars(
+                mb_win_rates, 'copies', vdims=['winrate', 'errmin', 'errmax'],
+            ))
 
             sb_idx = self.feature_names.get(f'{card}_SB')
+            sb_win_rates = []
             if sb_idx is not None:    
                 copy_counts = self.X[self.valid_wr_rows][:, sb_idx].toarray()
                 
-                sb_win_rates = []
+                
                 for i in range(5):  # 0-4 copies
                     mask = copy_counts == i
                     wins = self.df.loc[self.valid_wr_rows].reset_index().loc[mask.ravel(), 'Wins'].sum()
@@ -518,12 +520,12 @@ Each filter stacks - use the "Reset filter" button on the left to clear selectio
                             'errmax': np.nan,
                         })
                 
-                plots.append(hv.Scatter(
-                    sb_win_rates, 'copies', 'winrate', label='SB',
-                ).opts(size=7, toolbar=None, default_tools=[],))
-                plots.append(hv.ErrorBars(
-                    sb_win_rates, 'copies', vdims=['winrate', 'errmin', 'errmax'],
-                ).opts(toolbar=None, default_tools=[],))
+            plots.append(hv.Scatter(
+                sb_win_rates, 'copies', 'winrate', label='SB',
+            ).opts(size=7, toolbar=None, default_tools=[],))
+            plots.append(hv.ErrorBars(
+                sb_win_rates, 'copies', vdims=['winrate', 'errmin', 'errmax'],
+            ).opts(toolbar=None, default_tools=[],))
 
             # Add helper lines for context, 50% and the average wr of selected decks.
             #
