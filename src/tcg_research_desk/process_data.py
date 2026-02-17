@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 from scipy import sparse
 
-from .utils import fuzzy_join, get_last_standard_change
+from .utils import fuzzy_join, get_last_standard_change, get_lookback_for_format
 from .archetypes import generate_archetypes
 
 
@@ -411,10 +411,7 @@ if __name__ == '__main__':
     parser.add_argument("format", help="Format to process", default='Modern')
     args = parser.parse_args()
 
-    if args.format == "Standard":
-        last_date, lookback_days = get_last_standard_change()
-    else:
-        lookback_days = 182
+    lookback_days = get_lookback_for_format(args.format)
 
     print(f'Processing {args.format}')
 

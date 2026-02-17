@@ -7,4 +7,5 @@ except importlib.metadata.PackageNotFoundError:
     __version__ = "unknown"
 
 from .process_data import process_mtg_data, load_data
+from .utils import get_lookback_for_format
 from .ui import MTGAnalyzer, create_dashboard

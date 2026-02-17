@@ -153,6 +153,49 @@ def vertical_bar_html(value):
         </div>
     """
 
+def get_lookback_for_format(fmt, tournament_path='../MTG_decklistcache/Tournaments', min_files=30):
+    """Returns lookback_days based on most recent format-relevant set release via Scryfall.
+    Falls back to previous set if too few tournament files exist."""
+    FORMAT_SET_TYPES = {
+        'Standard': {'expansion', 'core'},
+        'Pioneer':  {'expansion', 'core'},
+        'Modern':   {'expansion', 'core', 'masters', 'draft_innovation'},
+    }
+    set_types = FORMAT_SET_TYPES.get(fmt, {'expansion', 'core'})
+
+    response = requests.get('https://api.scryfall.com/sets')
+    response.raise_for_status()
+    sets_data = response.json().get('data', [])
+
+    now = datetime.now()
+    release_dates = []
+    for s in sets_data:
+        if s.get('set_type') in set_types and s.get('released_at'):
+            rd = datetime.strptime(s['released_at'], '%Y-%m-%d')
+            if rd <= now:
+                release_dates.append(rd)
+
+    release_dates.sort(reverse=True)
+
+    if not release_dates:
+        return 100  # fallback
+
+    # Lazy import to avoid circular dependency
+    from .process_data import get_tournament_files
+
+    for rd in release_dates:
+        lookback_days = (now - rd).days + 1
+        try:
+            files = get_tournament_files(tournament_path, lookback_days, fmt.lower())
+            if len(files) >= min_files:
+                return lookback_days
+        except ValueError:
+            continue
+
+    # All releases had too few files; use oldest release found
+    return (now - release_dates[-1]).days + 1
+
+
 def get_last_standard_change():
     """Returns tuple of (date_string, days_ago) for the most recent Standard change."""
     response = requests.get('https://whatsinstandard.com/api/v6/standard.json')
