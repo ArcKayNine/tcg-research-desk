@@ -163,7 +163,7 @@ def get_lookback_for_format(fmt, tournament_path='../MTG_decklistcache/Tournamen
     }
     set_types = FORMAT_SET_TYPES.get(fmt, {'expansion', 'core'})
 
-    response = requests.get('https://api.scryfall.com/sets')
+    response = requests.get('https://api.scryfall.com/sets', headers={'User-Agent': 'UrzasResearchDesk/1.0'})
     response.raise_for_status()
     sets_data = response.json().get('data', [])
 
